@@ -1,0 +1,21 @@
+// Traffic Classification Breakdown
+// Purpose: Quantify how much of the captured DNS traffic falls into each
+// category (normal baseline vs. simulated tunneling vs. simulated beaconing),
+// demonstrating the ability to separate signal from noise across a mixed dataset.
+
+index=main host=kali source="*dns.log"
+| rex field=_raw "^(?<ts>[^\t]+)\t(?<uid>[^\t]+)\t(?<src_ip>[^\t]+)\t(?<src_port>[^\t]+)\t(?<dest_ip>[^\t]+)\t(?<dest_port>[^\t]+)\t(?<proto>[^\t]+)\t(?<trans_id>[^\t]+)\t(?<rtt>[^\t]+)\t(?<query>[^\t]+)\t"
+| eval category=case(match(query,"exfil-test-domain"),"Tunneling", match(query,"suspicious-c2-domain"),"Beaconing", 1=1,"Normal")
+| stats count by category
+
+
+// -----------------------------------------------------------------------
+// Source / Destination Investigation for Tunneling Traffic
+// Purpose: Identify which host generated the tunneling-style queries, how
+// many were sent, and the exact time window — useful for building an
+// incident timeline.
+
+index=main host=kali source="*dns.log"
+| rex field=_raw "^(?<ts>[^\t]+)\t(?<uid>[^\t]+)\t(?<src_ip>[^\t]+)\t(?<src_port>[^\t]+)\t(?<dest_ip>[^\t]+)\t(?<dest_port>[^\t]+)\t(?<proto>[^\t]+)\t(?<trans_id>[^\t]+)\t(?<rtt>[^\t]+)\t(?<query>[^\t]+)\t"
+| where match(query, "exfil-test-domain")
+| stats count values(src_ip) as source_ips, values(dest_ip) as dest_ips, earliest(_time) as first_seen, latest(_time) as last_seen by query

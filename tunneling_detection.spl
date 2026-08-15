@@ -1,0 +1,19 @@
+// DNS Tunneling Detection
+// Purpose: Identify queries with abnormally long, high-digit-ratio subdomains,
+// a common signature of DNS tunneling / data exfiltration over DNS.
+//
+// Zeek's dns.log is tab-separated. Since automatic field extraction via the
+// Corelight Add-on for Zeek was unreliable in this environment (see README
+// "The Parsing Challenge" section), fields are extracted manually below
+// using rex with named capture groups on the raw tab-separated line.
+
+index=main host=kali source="*dns.log"
+| rex field=_raw "^(?<ts>[^\t]+)\t(?<uid>[^\t]+)\t(?<src_ip>[^\t]+)\t(?<src_port>[^\t]+)\t(?<dest_ip>[^\t]+)\t(?<dest_port>[^\t]+)\t(?<proto>[^\t]+)\t(?<trans_id>[^\t]+)\t(?<rtt>[^\t]+)\t(?<query>[^\t]+)\t"
+| where isnotnull(query) AND query!=""
+| eval subdomain=mvindex(split(query, "."), 0)
+| eval sub_len=len(subdomain)
+| eval digit_count=len(replace(subdomain, "[^0-9]", ""))
+| eval digit_ratio=round(digit_count/sub_len, 2)
+| stats count avg(sub_len) as avg_length, max(sub_len) as max_length, avg(digit_ratio) as avg_digit_ratio by query
+| where max_length > 12
+| sort -max_length
