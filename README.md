@@ -4,7 +4,7 @@ I built this project to practice real DNS threat hunting — not just reading
 log files someone else already collected, but capturing my own live network
 traffic and hunting through it the way a SOC analyst would.
 
-It runs on top of the [live monitoring pipeline](../README.md) I built first
+It runs on top of the [live monitoring pipeline](https://github.com/BalMM-hub/zeek-splunk-live-pipeline) I built first
 (Zeek watching my network traffic, a Splunk Universal Forwarder shipping
 Zeek's logs over, and Splunk Enterprise doing the analysis). In this project,
 I used that pipeline to generate and investigate two attack techniques that
